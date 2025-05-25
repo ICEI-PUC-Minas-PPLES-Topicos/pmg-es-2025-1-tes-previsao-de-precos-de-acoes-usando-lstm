@@ -1,13 +1,16 @@
-# Desenvolvimento de Aplicações Distribuídas
+# Previsão de preços de ações usando LSTM
 Repositório para publicação das resoluções dos exercícios de Laboratório das disciplinas de programação da PUC Minas!
 
 ## Alunos integrantes da equipe
 
-* Nome completo do aluno
+* Gabriel Dolabela Marques
+* Henrique Carvalho Almeida
+* João Pedro de Oliveira Pauletti
+* Vitor Lany Freitas Ferreira
 
 ## Professor responsável
 
-* Nome completo do professor
+* Leonardo Vilela Cardoso
 
 ## Instruções de Uso
 
