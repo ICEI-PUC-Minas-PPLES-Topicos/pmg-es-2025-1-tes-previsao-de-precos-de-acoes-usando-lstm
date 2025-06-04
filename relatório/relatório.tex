@@ -1,0 +1,160 @@
+
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{float}
+
+\title{Previsão de Preços de Ações com Redes LSTM: Uma Abordagem Robusta sobre o Papel PETR4 no Mercado Brasileiro}
+
+\author{
+\IEEEauthorblockN{1\textsuperscript{st} Gabriel Dolabela Marques}
+\IEEEauthorblockA{\textit{ICEI - PUC Minas} \\
+Belo Horizonte, MG, Brasil \\
+gabriel.marques.1203633@sga.pucminas.br}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Henrique Carvalho Almeida}
+\IEEEauthorblockA{\textit{ICEI - PUC Minas} \\
+Belo Horizonte, MG, Brasil \\
+henrique.almeida.1405681@sga.pucminas.br}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} João Pedro de Oliveira Pauletti}
+\IEEEauthorblockA{\textit{ICEI - PUC Minas} \\
+Belo Horizonte, MG, Brasil \\
+joao.pauletti@sga.pucminas.br}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Vitor Lany Freitas Ferreira}
+\IEEEauthorblockA{\textit{ICEI - PUC Minas} \\
+Belo Horizonte, MG, Brasil \\
+vitor.ferreira.1386402@sga.pucminas.br}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A antecipação de preços no mercado financeiro é uma atividade de extrema relevância para investidores e analistas. Este artigo apresenta uma abordagem baseada em redes neurais do tipo LSTM (Long Short-Term Memory) aplicada à previsão do preço de fechamento da ação PETR4, uma das mais negociadas da B3. Foram utilizados dados históricos de 2018 a 2025 extraídos com a biblioteca yfinance. O modelo desenvolvido inclui camadas recorrentes empilhadas, dropout para regularização e previsão recursiva de curto prazo. As janelas de entrada foram formadas por 60 dias úteis, com previsão para o dia seguinte, totalizando mais de 1700 amostras. A avaliação do desempenho do modelo foi realizada com as métricas MAE (Erro Absoluto Médio) e RMSE (Raiz do Erro Quadrático Médio), alcançando R\$ 0{,}74 e R\$ 1{,}01, respectivamente, no conjunto de teste. Também foram geradas bandas de previsão otimista e pessimista com base no erro médio. Os resultados demonstram que mesmo com uma arquitetura simples e dados univariados, a LSTM é capaz de capturar padrões relevantes para antecipar o comportamento do mercado, indicando sua viabilidade.
+\end{abstract}
+
+\section{Introdução}
+A previsão de séries temporais financeiras é um campo tradicionalmente dominado por métodos estatísticos como regressão linear, modelos ARIMA e suavização exponencial. No entanto, a crescente complexidade e não linearidade dos mercados financeiros têm exigido abordagens mais robustas, capazes de lidar com padrões ocultos, ruídos e variabilidades abruptas.
+
+Nos últimos anos, o avanço da inteligência artificial e do aprendizado profundo possibilitou o surgimento de modelos altamente expressivos. Dentre eles, as redes neurais recorrentes (RNNs), e em particular as redes do tipo LSTM (Long Short-Term Memory), destacam-se por sua capacidade de capturar dependências temporais de longo prazo, mitigando problemas como o gradiente desaparecendo \cite{b1}. Além disso, estudos recentes, como o de Fauzan et al. \cite{b2}, demonstraram que as LSTMs são capazes de prever preços de ações com alta precisão, alcançando erros médios inferiores a 2,5\%, o que reforça sua aplicabilidade em cenários financeiros complexos.
+
+% O mercado financeiro brasileiro é um ambiente desafiador para modelagem, dada sua volatilidade, dependência de fatores macroeconômicos e alta sensibilidade a eventos políticos e externos. Nesse cenário, as ação PETR4.SA, da Petrobras, apresenta-se como um ativo de grande interesse: além de sua elevada liquidez, o papel é influenciado por múltiplos fatores, como o preço internacional do petróleo, decisões governamentais e oscilações cambiais.
+
+O mercado financeiro brasileiro é um ambiente desafiador para modelagem, dada sua volatilidade, dependência de fatores macroeconômicos e alta sensibilidade a eventos políticos e externos. Nesse cenário, as ações apresentam-se como um ativo de grande interesse: além de sua elevada liquidez, o papel é influenciado por múltiplos fatores, como decisões governamentais e oscilações cambiais.
+
+% Este artigo propõe o uso de uma rede LSTM para prever os preços de fechamento da PETR4.SA a partir de dados históricos. O foco é avaliar o desempenho de um modelo relativamente simples, porém eficaz, utilizando apenas o preço de fechamento como entrada (cenário univariado). A previsão é feita com janelas deslizantes de 60 dias para antecipar o dia seguinte, e, ao final, realizamos a projeção dos cinco dias úteis subsequentes ao histórico completo. Os resultados são avaliados com métricas quantitativas e visualizações gráficas, e são discutidas suas implicações práticas para o uso de modelos baseados em deep learning no contexto do mercado financeiro nacional.
+
+% Este artigo propõe o uso de uma rede LSTM para prever os preços de fechamento de ações a partir de dados históricos. O foco é avaliar o desempenho de um modelo relativamente simples, porém eficaz, utilizando apenas o preço de fechamento como entrada (cenário univariado).
+
+Diante desse cenário, este artigo propõe o uso de uma rede LSTM para prever os preços de fechamento de ações a partir de dados históricos. O objetivo é avaliar a eficácia de um modelo relativamente simples, porém robusto, operando em um cenário univariado — utilizando apenas o preço de fechamento como entrada. Embora técnicas avançadas recomendem que o ajuste do \textit{scaler} seja realizado exclusivamente sobre o conjunto de treinamento para evitar \textit{data leakage}, neste estudo optou-se por aplicar o ajuste sobre todo o conjunto de dados como forma de simplificação metodológica. Com isso, busca-se verificar se técnicas de aprendizado profundo podem, mesmo com entradas limitadas e ajustes simplificados, superar abordagens tradicionais em termos de capacidade preditiva.
+
+\section{Método}
+
+\subsection{Justificativa da escolha da ação}
+A ação PETR4 foi selecionada como objeto de estudo neste trabalho, fundamentada em fatores que a tornam particularmente adequada para a aplicação de modelos preditivos baseados em redes neurais. A PETR4, papel que representa a Petrobras, está entre os ativos mais líquidos e negociados da Bolsa de Valores do Brasil (B3), sendo uma das ações com maior peso no índice Ibovespa.
+
+Essa alta liquidez garante um volume robusto de dados históricos e minimiza distorções causadas por baixa negociação, tornando o cenário mais adequado para aprendizado estatístico. Além disso, o papel é conhecido por sua alta sensibilidade a fatores macroeconômicos e geopolíticos, como o preço internacional do petróleo, variações cambiais, políticas energéticas e instabilidades políticas internas. Tais características tornam a série temporal da PETR4 complexa, desafiadora e, ao mesmo tempo, altamente representativa do comportamento de ativos emergentes.
+
+Outro ponto relevante é a importância estratégica da Petrobras para a economia nacional, o que garante grande interesse por parte de investidores institucionais e pessoas físicas. Isso torna o estudo de seu papel não apenas tecnicamente válido, mas também socialmente relevante e aplicável a contextos reais de tomada de decisão.
+
+Por fim, a escolha da PETR4 permite a generalização dos resultados obtidos para outros ativos de alta capitalização e relevância setorial, permitindo que a metodologia desenvolvida neste estudo possa ser adaptada ou estendida para outros cenários com estrutura de dados similar.
+
+\subsection{Aquisição e Estruturação dos Dados}
+A base de dados foi composta a partir de preços históricos da ação PETR4, extraídos com a biblioteca yfinance entre janeiro de 2018 e maio de 2025. Os dados incluíam o preço de fechamento diário, que foi a única variável considerada. Esta abordagem visa testar a capacidade das redes LSTM em capturar padrões temporais sem o auxílio de variáveis imprevisíveis. O conjunto bruto foi tratado para remover valores nulos e inconsistências, e em seguida ordenado cronologicamente.
+
+\subsection{Pré-processamento e Normalização}
+Após a limpeza, os dados foram normalizados utilizando a técnica de MinMax para o intervalo [0, 1], assegurando melhor desempenho do treinamento da rede neural. Essa abordagem é consistente com estudos anteriores, como o de Ruke et al. \cite{b3}, que destacaram a importância da normalização para estabilizar os gradientes durante o treinamento de modelos LSTM.
+
+\subsection{Janela de Entrada e Saída}
+A construção das amostras foi realizada com uma janela deslizante de 60 dias úteis como entrada e a previsão do dia seguinte como saída. Este processo gerou mais de 1700 pares de entrada e saída, que foram divididos em conjuntos de treinamento (80\%) e teste (20\%), respeitando a ordem para preservar a integridade da série.
+
+\subsection{Arquitetura da Rede LSTM}
+A rede neural foi implementada com duas camadas LSTM empilhadas, cada uma com 50 unidades de memória. Para prevenir \textit{overfitting}, foi aplicada regularização com Dropout de 20\%. A saída da última LSTM foi conectada a uma camada densa com ativação linear, responsável por fornecer o valor previsto. A função de perda utilizada foi o Erro Quadrático Médio (MSE), e o otimizador foi o Adam, conhecido por sua rápida convergência em problemas não lineares.
+
+\subsection{Treinamento e Avaliação}
+O modelo foi treinado por 25 épocas com um tamanho de 32 amostras. Durante o treinamento, foi monitorada a perda em um conjunto de validação separado, e os pesos finais foram selecionados com base na melhor performance sobre esse conjunto. Após o treinamento, o modelo foi avaliado com as métricas MAE (Erro Absoluto Médio) e RMSE (Raiz do Erro Quadrático Médio), para quantificar sua precisão.
+
+\subsection{Projeção Futura e Bandas de Incerteza}
+Utilizando o modelo final treinado, foi feita a projeção dos 5 dias úteis seguintes ao último dado conhecido. Essa previsão foi feita de forma recursiva, utilizando a própria saída como entrada do próximo passo. Além da linha central de previsão, foram calculadas bandas de incerteza com base no MAE do teste, fornecendo uma estimativa otimista e pessimista para cada ponto futuro, simulando um intervalo de confiança.
+
+\section{Resultados}
+\subsection{Desempenho Quantitativo}
+A avaliação quantitativa do modelo foi realizada utilizando as métricas MAE (Erro Absoluto Médio) e RMSE (Raiz do Erro Quadrático Médio), que são amplamente utilizadas na literatura para medir a precisão de modelos de regressão. Os valores obtidos foram:
+
+\begin{itemize}
+    \item MAE = R\$ 0{,}74
+    \item RMSE -= R\$ 1{,}01
+\end{itemize}
+
+O MAE representa, em média, o erro absoluto entre os valores previstos e os reais. No contexto do preço da PETR4, esse valor representa uma variação percentual inferior a 3\% na maioria das amostras. Já o RMSE, que penaliza mais fortemente os grandes erros, indicou que o modelo detectou raros desvios graves.
+
+Esses resultados são consistentes com os relatados por Aswini et al. \cite{b4}, que também utilizaram um modelo LSTM para prever preços de ações e observaram erros médios abaixo de 3\%. Esse desempenho reforça a robustez das redes LSTM mesmo em cenários univariados, destacando sua capacidade de capturar padrões relevantes em séries temporais financeiras.
+
+\subsection{Análise Visual: Previsão no Conjunto de Teste}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{figuras/grafico_teste.png}
+\caption{Comparação entre os preços reais e os valores previstos no conjunto de teste}
+\end{figure}
+
+Na Figura 1, observa-se que o modelo LSTM foi capaz de seguir as tendências gerais da ação no conjunto de teste. Apesar de algumas oscilações pontuais, os picos e vales foram bem capturados, demonstrando que a rede conseguiu internalizar os padrões cíclicos da série. As divergências maiores ocorreram em pontos específicos de variações abruptas, o que é comum em dados financeiros, especialmente quando fatores externos influenciam os preços repentinamente.
+
+\subsection{Curva de Aprendizado}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{figuras/curva_aprendizado.png}
+\caption{Evolução da função de perda (loss) durante o treinamento}
+\end{figure}
+
+A Figura 2 apresenta a curva de aprendizado do modelo. Nota-se uma convergência estável da função de perda, com decréscimo progressivo ao longo das 25 épocas. A diferença entre a perda no conjunto de treinamento e validação manteve-se pequena, indicando baixa incidência de \textit{overfitting}. Isso demonstra que o modelo conseguiu generalizar bem para dados não vistos durante o treinamento, graças ao uso de técnicas como Dropout e uma divisão temporal coerente dos dados.
+
+\subsection{Previsão Recursiva Futura}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{figuras/previsao_futura.png}
+\caption{Previsão dos próximos cinco dias com bandas de erro estimadas}
+\end{figure}
+
+A Figura 3 ilustra a projeção de cinco dias futuros a partir da última janela conhecida. As bandas de erro foram definidas com base no MAE médio obtido no conjunto de teste, gerando limites otimista e pessimista para cada previsão. Essa abordagem fornece uma perspectiva probabilística, permitindo ao investidor avaliar os riscos associados a decisões de curto prazo. As previsões demonstram continuidade da tendência observada nos últimos dias da série, com variação moderada.
+
+\subsection{Análise do Erro Absoluto}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.45\textwidth]{figuras/erro_absoluto.png}
+\caption{Erro absoluto por dia ao longo do conjunto de teste}
+\end{figure}
+
+A Figura 4 mostra o erro absoluto diário ao longo do conjunto de teste. É possível observar que, na maior parte do tempo, os erros permaneceram abaixo de R\$ 1,00, o que representa uma margem de erro operacional aceitável para modelos de previsão baseados exclusivamente em dados históricos. Os picos de erro ocorreram em momentos de reversões rápidas de tendência ou aumento súbito na volatilidade, reforçando a necessidade de considerar variáveis contextuais para mitigar essas oscilações.
+
+\subsection{Interpretação dos Resultados}
+De forma geral, o modelo demonstrou ser eficaz em capturar as tendências da PETR4 com boa fidelidade. A estabilidade do aprendizado e a precisão na fase de teste sugerem que o uso de LSTMs, mesmo em ambientes univariados, pode ser uma solução viável e acessível para investidores, analistas e sistemas automatizados. O uso de previsões com bandas de erro também aumenta o potencial prático da aplicação, fornecendo intervalos que facilitam a gestão de risco.
+
+A análise gráfica contribui significativamente para a interpretação dos dados e a identificação de padrões de erro, fortalecendo a confiabilidade do modelo apresentado.
+
+\section{Conclusões}
+O presente estudo explorou o uso de redes LSTM para a tarefa de previsão de preços da ação PETR4, utilizando uma abordagem univariada com janelas temporais. Os resultados obtidos indicam que mesmo modelos relativamente simples, sem o uso de variáveis imprevisíveis, podem atingir desempenho satisfatório em cenários reais de mercado. A arquitetura LSTM mostrou-se capaz de capturar dinâmicas temporais relevantes do papel analisado, com erros médios abaixo de R\$ 1,00.
+
+A partir dos gráficos apresentados, é possível observar que a rede conseguiu prever com consistência as tendências gerais do ação, ainda que com limitações em dias de alta volatilidade. As bandas de incerteza construídas com base no MAE forneceram uma estimativa útil de margem de erro, evidenciando o potencial do modelo como ferramenta de apoio à decisão.
+
+Apesar da simplicidade, os resultados abrem espaço para diversas oportunidades de investigações futuras. Entre elas, destacam-se a utilização de variáveis macroeconômicas (como taxa de câmbio, preço do petróleo e índices internacionais), a aplicação de outras técnicas de treinamento, e o uso de outras arquiteturas.
+
+Conclui-se, portanto, que as LSTM representam uma ferramenta valiosa para análise financeira baseada em dados históricos, contribuindo para previsões mais informadas e estratégicas no contexto do mercado de ações.
+
+\begin{thebibliography}{00}
+
+\bibitem{b1} A. Kumar, M. Trivedi, V. Upadhyay, and S. K. Upadhyay, ``A machine learning-based analysis of stock market forecasting: A review,'' in *Proc. 2024 1st Int. Conf. Adv. Comput. Emerg. Technol. (ACET)*, Ghaziabad, India, Aug. 2024, pp. 01--06, doi: 10.1109/ACET61898.2024.10730110.
+
+\bibitem{b2} A. Fauzan, M. SusanAnggreainy, N. Nathaniel, and A. Kurniawan, ``Predicting stock market movements using long short-term memory (LSTM),'' in *Proc. 2023 4th Int. Conf. Artif. Intell. Data Sci. (AiDAS)*, IPOH, Malaysia, Sep. 2023, pp. 144--147, doi: 10.1109/AIDAS60501.2023.10284713.
+
+\bibitem{b3} A. Ruke, S. Gaikwad, G. Yadav, A. Buchade, S. Nimbarkar, and A. Sonawane, ``Predictive analysis of stock market trends: A machine learning approach,'' in *Proc. 2024 4th Int. Conf. Data Eng. Commun. Syst. (ICDECS)*, Bangalore, India, Mar. 2024, pp. 01--06, doi: 10.1109/ICDECS59733.2023.10503557.
+
+\bibitem{b4} J. Aswini, D. S., C. Lakshmipriya, L. Krishnaa, and S. Subramanian, ``Stock market forecasting using LSTM,'' in *Proc. 2024 2nd World Conf. Commun. Comput. (WCONF)*, Raipur, India, Jul. 2024, pp. 01--04, doi: 10.1109/WCONF61366.2024.10692057.
+
+\end{thebibliography}
+\end{document}
